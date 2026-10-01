@@ -1,0 +1,530 @@
+--[[
+    🍫 Chocolate Auto Serve (Edição Premium & Redesign)
+    Interface Ultra Moderna + Tela de Carregamento Elegante
+--]]
+
+-- Serviços
+local Players = game:GetService("Players")
+local TeleportService = game:GetService("TeleportService")
+local HttpService = game:GetService("HttpService")
+local TweenService = game:GetService("TweenService")
+local CoreGui = game:GetService("CoreGui")
+local LocalPlayer = Players.LocalPlayer
+
+-- Variáveis de configuração
+local SCRIPT_NAME = "Chocolate Auto Serve"
+local TARGET_PLAYERS = 1
+local AUTO_HOP = false
+local IS_MINIMIZED = false
+local IS_CHECKING = false
+
+-- Paleta de Cores Premium
+local COLORS = {
+    Background = Color3.fromRGB(18, 14, 22),
+    TopBar = Color3.fromRGB(28, 20, 36),
+    Accent = Color3.fromRGB(255, 110, 180),
+    AccentDark = Color3.fromRGB(200, 70, 130),
+    AccentGradient = Color3.fromRGB(255, 160, 120),
+    CardBg = Color3.fromRGB(28, 24, 38),
+    Text = Color3.fromRGB(255, 255, 255),
+    SubText = Color3.fromRGB(180, 170, 195),
+    Success = Color3.fromRGB(110, 230, 160),
+    Warning = Color3.fromRGB(255, 190, 90),
+    OffState = Color3.fromRGB(45, 38, 55)
+}
+
+-- ==================== TELA DE CARREGAMENTO ====================
+local loadingGui = Instance.new("ScreenGui")
+loadingGui.Name = "ChocolateLoading"
+loadingGui.ResetOnSpawn = false
+loadingGui.IgnoreGuiInset = true
+loadingGui.Parent = CoreGui
+
+local loadingFrame = Instance.new("Frame")
+loadingFrame.Size = UDim2.new(1, 0, 1, 0)
+loadingFrame.BackgroundColor3 = COLORS.Background
+loadingFrame.BorderSizePixel = 0
+loadingFrame.Parent = loadingGui
+
+local loadingGradient = Instance.new("UIGradient")
+loadingGradient.Color = ColorSequence.new({
+    ColorSequenceKeypoint.new(0, Color3.fromRGB(12, 8, 16)),
+    ColorSequenceKeypoint.new(1, Color3.fromRGB(25, 18, 32))
+})
+loadingGradient.Rotation = 45
+loadingGradient.Parent = loadingFrame
+
+-- Card Central
+local loadCard = Instance.new("Frame")
+loadCard.Size = UDim2.new(0, 320, 0, 180)
+loadCard.Position = UDim2.new(0.5, -160, 0.5, -90)
+loadCard.BackgroundColor3 = COLORS.CardBg
+loadCard.BorderSizePixel = 0
+loadCard.Parent = loadingFrame
+
+local cardCorner = Instance.new("UICorner")
+cardCorner.CornerRadius = UDim.new(0, 16)
+cardCorner.Parent = loadCard
+
+local cardStroke = Instance.new("UIStroke")
+cardStroke.Color = COLORS.Accent
+cardStroke.Thickness = 1.5
+cardStroke.Transparency = 0.5
+cardStroke.Parent = loadCard
+
+local iconLabel = Instance.new("TextLabel")
+iconLabel.Size = UDim2.new(1, 0, 0, 40)
+iconLabel.Position = UDim2.new(0, 0, 0, 20)
+iconLabel.BackgroundTransparency = 1
+iconLabel.Text = "🍫"
+iconLabel.TextSize = 36
+iconLabel.Parent = loadCard
+
+local loadingTitle = Instance.new("TextLabel")
+loadingTitle.Size = UDim2.new(1, 0, 0, 25)
+loadingTitle.Position = UDim2.new(0, 0, 0, 65)
+loadingTitle.BackgroundTransparency = 1
+loadingTitle.Text = "CHOCOLATE AUTO SERVE"
+loadingTitle.TextColor3 = COLORS.Text
+loadingTitle.TextSize = 14
+loadingTitle.Font = Enum.Font.GothamBold
+loadingTitle.Parent = loadCard
+
+local loadingStatus = Instance.new("TextLabel")
+loadingStatus.Size = UDim2.new(1, 0, 0, 20)
+loadingStatus.Position = UDim2.new(0, 0, 0, 90)
+loadingStatus.BackgroundTransparency = 1
+loadingStatus.Text = "Iniciando sistema..."
+loadingStatus.TextColor3 = COLORS.SubText
+loadingStatus.TextSize = 11
+loadingStatus.Font = Enum.Font.Gotham
+loadingStatus.Parent = loadCard
+
+-- Barra de Progresso
+local loadingBarBg = Instance.new("Frame")
+loadingBarBg.Size = UDim2.new(0, 240, 0, 6)
+loadingBarBg.Position = UDim2.new(0.5, -120, 0, 130)
+loadingBarBg.BackgroundColor3 = Color3.fromRGB(40, 32, 52)
+loadingBarBg.BorderSizePixel = 0
+loadingBarBg.Parent = loadCard
+
+local loadingBarBgCorner = Instance.new("UICorner")
+loadingBarBgCorner.CornerRadius = UDim.new(1, 0)
+loadingBarBgCorner.Parent = loadingBarBg
+
+local loadingBar = Instance.new("Frame")
+loadingBar.Size = UDim2.new(0, 0, 1, 0)
+loadingBar.BackgroundColor3 = COLORS.Accent
+loadingBar.BorderSizePixel = 0
+loadingBar.Parent = loadingBarBg
+
+local barCorner = Instance.new("UICorner")
+barCorner.CornerRadius = UDim.new(1, 0)
+barCorner.Parent = loadingBar
+
+local barGrad = Instance.new("UIGradient")
+barGrad.Color = ColorSequence.new(COLORS.Accent, COLORS.AccentGradient)
+barGrad.Parent = loadingBar
+
+local steps = {
+    {0.35, "Carregando interface..."},
+    {0.70, "Otimizando rotas de servidor..."},
+    {1.00, "Pronto para uso!"}
+}
+
+for _, step in ipairs(steps) do
+    task.wait(0.3)
+    TweenService:Create(loadingBar, TweenInfo.new(0.4, Enum.EasingStyle.Cubic), {Size = UDim2.new(step[1], 0, 1, 0)}):Play()
+    loadingStatus.Text = step[2]
+end
+
+task.wait(0.4)
+TweenService:Create(loadCard, TweenInfo.new(0.3, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {Size = UDim2.new(0, 0, 0, 0)}):Play()
+task.wait(0.3)
+loadingGui:Destroy()
+
+-- ==================== MENU PRINCIPAL ====================
+local screenGui = Instance.new("ScreenGui")
+screenGui.Name = "ChocolateAutoServe"
+screenGui.ResetOnSpawn = false
+screenGui.IgnoreGuiInset = true
+screenGui.Parent = CoreGui
+
+-- Janela Principal
+local mainFrame = Instance.new("Frame")
+mainFrame.Size = UDim2.new(0, 250, 0, 300)
+mainFrame.Position = UDim2.new(0.5, -125, 0.5, -150)
+mainFrame.BackgroundColor3 = COLORS.Background
+mainFrame.BorderSizePixel = 0
+mainFrame.Active = true
+mainFrame.Draggable = true
+mainFrame.Parent = screenGui
+
+local mainCorner = Instance.new("UICorner")
+mainCorner.CornerRadius = UDim.new(0, 14)
+mainCorner.Parent = mainFrame
+
+local mainStroke = Instance.new("UIStroke")
+mainStroke.Color = COLORS.Accent
+mainStroke.Thickness = 1.2
+mainStroke.Transparency = 0.4
+mainStroke.Parent = mainFrame
+
+-- Top Bar
+local topBar = Instance.new("Frame")
+topBar.Size = UDim2.new(1, 0, 0, 40)
+topBar.BackgroundColor3 = COLORS.TopBar
+topBar.BorderSizePixel = 0
+topBar.Parent = mainFrame
+
+local topCorner = Instance.new("UICorner")
+topCorner.CornerRadius = UDim.new(0, 14)
+topCorner.Parent = topBar
+
+-- Fix para cantos inferiores da TopBar
+local topBarPatch = Instance.new("Frame")
+topBarPatch.Size = UDim2.new(1, 0, 0, 10)
+topBarPatch.Position = UDim2.new(0, 0, 1, -10)
+topBarPatch.BackgroundColor3 = COLORS.TopBar
+topBarPatch.BorderSizePixel = 0
+topBarPatch.Parent = topBar
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, -50, 1, 0)
+title.Position = UDim2.new(0, 12, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "🍫  Chocolate Serve"
+title.TextColor3 = COLORS.Text
+title.TextSize = 13
+title.Font = Enum.Font.GothamBold
+title.TextXAlignment = Enum.TextXAlignment.Left
+title.Parent = topBar
+
+-- Botão Minimizar
+local minimizeBtn = Instance.new("TextButton")
+minimizeBtn.Size = UDim2.new(0, 24, 0, 24)
+minimizeBtn.Position = UDim2.new(1, -30, 0, 8)
+minimizeBtn.BackgroundColor3 = COLORS.CardBg
+minimizeBtn.BorderSizePixel = 0
+minimizeBtn.Text = "—"
+minimizeBtn.TextColor3 = COLORS.Text
+minimizeBtn.TextSize = 12
+minimizeBtn.Font = Enum.Font.GothamBold
+minimizeBtn.Parent = topBar
+
+local minCorner = Instance.new("UICorner")
+minCorner.CornerRadius = UDim.new(1, 0)
+minCorner.Parent = minimizeBtn
+
+-- Conteúdo
+local contentFrame = Instance.new("Frame")
+contentFrame.Size = UDim2.new(1, -24, 1, -52)
+contentFrame.Position = UDim2.new(0, 12, 0, 46)
+contentFrame.BackgroundTransparency = 1
+contentFrame.Parent = mainFrame
+
+-- Campo Jogadores
+local playersLabel = Instance.new("TextLabel")
+playersLabel.Size = UDim2.new(1, 0, 0, 16)
+playersLabel.Position = UDim2.new(0, 0, 0, 0)
+playersLabel.BackgroundTransparency = 1
+playersLabel.Text = "MÍNIMO DE JOGADORES"
+playersLabel.TextColor3 = COLORS.SubText
+playersLabel.TextSize = 10
+playersLabel.Font = Enum.Font.GothamBold
+playersLabel.TextXAlignment = Enum.TextXAlignment.Left
+playersLabel.Parent = contentFrame
+
+local inputBox = Instance.new("TextBox")
+inputBox.Size = UDim2.new(1, 0, 0, 32)
+inputBox.Position = UDim2.new(0, 0, 0, 20)
+inputBox.BackgroundColor3 = COLORS.CardBg
+inputBox.BorderSizePixel = 0
+inputBox.Text = "1"
+inputBox.TextColor3 = COLORS.Accent
+inputBox.TextSize = 14
+inputBox.Font = Enum.Font.GothamBold
+inputBox.ClearTextOnFocus = false
+inputBox.Parent = contentFrame
+
+local inputCorner = Instance.new("UICorner")
+inputCorner.CornerRadius = UDim.new(0, 8)
+inputCorner.Parent = inputBox
+
+local inputStroke = Instance.new("UIStroke")
+inputStroke.Color = COLORS.Accent
+inputStroke.Thickness = 1
+inputStroke.Transparency = 0.7
+inputStroke.Parent = inputBox
+
+-- Toggle Auto Hop
+local hopBtn = Instance.new("TextButton")
+hopBtn.Size = UDim2.new(1, 0, 0, 34)
+hopBtn.Position = UDim2.new(0, 0, 0, 62)
+hopBtn.BackgroundColor3 = COLORS.OffState
+hopBtn.BorderSizePixel = 0
+hopBtn.Text = "AUTO HOP: DESATIVADO"
+hopBtn.TextColor3 = COLORS.SubText
+hopBtn.TextSize = 11
+hopBtn.Font = Enum.Font.GothamBold
+hopBtn.Parent = contentFrame
+
+local hopCorner = Instance.new("UICorner")
+hopCorner.CornerRadius = UDim.new(0, 8)
+hopCorner.Parent = hopBtn
+
+-- Botão Execute
+local execBtn = Instance.new("TextButton")
+execBtn.Size = UDim2.new(1, 0, 0, 38)
+execBtn.Position = UDim2.new(0, 0, 0, 106)
+execBtn.BackgroundColor3 = COLORS.Accent
+execBtn.BorderSizePixel = 0
+execBtn.Text = "EXECUTAR HOP"
+execBtn.TextColor3 = COLORS.Text
+execBtn.TextSize = 12
+execBtn.Font = Enum.Font.GothamBold
+execBtn.Parent = contentFrame
+
+local execCorner = Instance.new("UICorner")
+execCorner.CornerRadius = UDim.new(0, 10)
+execCorner.Parent = execBtn
+
+local execGrad = Instance.new("UIGradient")
+execGrad.Color = ColorSequence.new(COLORS.Accent, COLORS.AccentDark)
+execGrad.Parent = execBtn
+
+-- Status Card
+local statusCard = Instance.new("Frame")
+statusCard.Size = UDim2.new(1, 0, 0, 52)
+statusCard.Position = UDim2.new(0, 0, 0, 152)
+statusCard.BackgroundColor3 = COLORS.CardBg
+statusCard.BorderSizePixel = 0
+statusCard.Parent = contentFrame
+
+local statusCorner = Instance.new("UICorner")
+statusCorner.CornerRadius = UDim.new(0, 8)
+statusCorner.Parent = statusCard
+
+local statusLabel = Instance.new("TextLabel")
+statusLabel.Size = UDim2.new(1, -16, 1, 0)
+statusLabel.Position = UDim2.new(0, 8, 0, 0)
+statusLabel.BackgroundTransparency = 1
+statusLabel.Text = "Pronto para buscar servidores"
+statusLabel.TextColor3 = COLORS.SubText
+statusLabel.TextSize = 10
+statusLabel.Font = Enum.Font.Gotham
+statusLabel.TextWrapped = true
+statusLabel.Parent = statusCard
+
+-- Info de Jogadores
+local infoLabel = Instance.new("TextLabel")
+infoLabel.Size = UDim2.new(1, 0, 0, 15)
+infoLabel.Position = UDim2.new(0, 0, 1, -15)
+infoLabel.BackgroundTransparency = 1
+infoLabel.Text = "Servidor Atual: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+infoLabel.TextColor3 = COLORS.SubText
+infoLabel.TextSize = 10
+infoLabel.Font = Enum.Font.Gotham
+infoLabel.Parent = contentFrame
+
+-- Botão Minimizado (Flutuante)
+local ballBtn = Instance.new("TextButton")
+ballBtn.Size = UDim2.new(0, 44, 0, 44)
+ballBtn.Position = UDim2.new(0, 20, 0, 20)
+ballBtn.BackgroundColor3 = COLORS.Background
+ballBtn.BorderSizePixel = 0
+ballBtn.Text = "🍫"
+ballBtn.TextSize = 20
+ballBtn.Visible = false
+ballBtn.Active = true
+ballBtn.Draggable = true
+ballBtn.Parent = screenGui
+
+local ballCorner = Instance.new("UICorner")
+ballCorner.CornerRadius = UDim.new(1, 0)
+ballCorner.Parent = ballBtn
+
+local ballStroke = Instance.new("UIStroke")
+ballStroke.Color = COLORS.Accent
+ballStroke.Thickness = 1.5
+ballStroke.Parent = ballBtn
+
+-- ==================== EFETOS VISUAIS E LÓGICA ====================
+
+-- Efeito Hover nos Botões
+local function addHoverEffect(btn, originalColor, hoverColor)
+    btn.MouseEnter:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = hoverColor}):Play()
+    end)
+    btn.MouseLeave:Connect(function()
+        TweenService:Create(btn, TweenInfo.new(0.2), {BackgroundColor3 = originalColor}):Play()
+    end)
+end
+
+addHoverEffect(minimizeBtn, COLORS.CardBg, COLORS.Accent)
+
+-- Loop de Atualização de Info
+task.spawn(function()
+    while screenGui.Parent do
+        infoLabel.Text = "Servidor Atual: " .. #Players:GetPlayers() .. "/" .. Players.MaxPlayers
+        task.wait(2)
+    end
+end)
+
+-- Minimizar / Restaurar
+minimizeBtn.MouseButton1Click:Connect(function()
+    IS_MINIMIZED = true
+    mainFrame.Visible = false
+    ballBtn.Visible = true
+end)
+
+ballBtn.MouseButton1Click:Connect(function()
+    if IS_MINIMIZED then
+        IS_MINIMIZED = false
+        mainFrame.Visible = true
+        ballBtn.Visible = false
+    end
+end)
+
+-- Toggle Auto Hop
+hopBtn.MouseButton1Click:Connect(function()
+    AUTO_HOP = not AUTO_HOP
+    if AUTO_HOP then
+        hopBtn.Text = "AUTO HOP: ATIVADO"
+        hopBtn.TextColor3 = COLORS.Text
+        TweenService:Create(hopBtn, TweenInfo.new(0.2), {BackgroundColor3 = COLORS.Accent}):Play()
+    else
+        hopBtn.Text = "AUTO HOP: DESATIVADO"
+        hopBtn.TextColor3 = COLORS.SubText
+        TweenService:Create(hopBtn, TweenInfo.new(0.2), {BackgroundColor3 = COLORS.OffState}):Play()
+    end
+end)
+
+inputBox.FocusLost:Connect(function()
+    local num = tonumber(inputBox.Text)
+    if num and num >= 1 then
+        TARGET_PLAYERS = math.floor(num)
+        inputBox.Text = tostring(TARGET_PLAYERS)
+    else
+        inputBox.Text = tostring(TARGET_PLAYERS)
+    end
+end)
+
+-- Sistema de Busca de Servidores
+local function getServers()
+    local servers = {}
+    local cursor = ""
+    local pagesToScan = 3
+    
+    for i = 1, pagesToScan do
+        local url = "https://games.roblox.com/v1/games/" .. game.PlaceId .. "/servers/Public?sortOrder=Desc&limit=100"
+        if cursor ~= "" then
+            url = url .. "&cursor=" .. cursor
+        end
+        
+        local success, result = pcall(function()
+            return HttpService:JSONDecode(game:HttpGet(url))
+        end)
+        
+        if success and result and result.data then
+            for _, server in ipairs(result.data) do
+                if server.playing < server.maxPlayers and server.id ~= game.JobId then
+                    table.insert(servers, server)
+                end
+            end
+            if result.nextPageCursor then
+                cursor = result.nextPageCursor
+            else
+                break
+            end
+        else
+            break
+        end
+    end
+    
+    return servers
+end
+
+local function hopToServer(serverId)
+    statusLabel.Text = "Conectando ao novo servidor..."
+    statusLabel.TextColor3 = COLORS.Warning
+    
+    local success, err = pcall(function()
+        TeleportService:TeleportToPlaceInstance(game.PlaceId, serverId, LocalPlayer)
+    end)
+    
+    if not success then
+        statusLabel.Text = "Falha no teleporte: " .. tostring(err)
+        statusLabel.TextColor3 = Color3.fromRGB(255, 100, 100)
+        return false
+    end
+    return true
+end
+
+local function checkAndHop()
+    statusLabel.Text = "Buscando servidores disponíveis..."
+    statusLabel.TextColor3 = COLORS.SubText
+    
+    local servers = getServers()
+    
+    if #servers == 0 then
+        statusLabel.Text = "Nenhum servidor encontrado. Tentando novamente..."
+        statusLabel.TextColor3 = COLORS.Warning
+        return false
+    end
+    
+    local validServers = {}
+    for _, server in ipairs(servers) do
+        if server.playing >= TARGET_PLAYERS then
+            table.insert(validServers, server)
+        end
+    end
+    
+    if #validServers > 0 then
+        local targetServer = validServers[math.random(1, #validServers)]
+        statusLabel.Text = "Servidor encontrado (" .. targetServer.playing .. " jog.)!"
+        statusLabel.TextColor3 = COLORS.Success
+        return hopToServer(targetServer.id)
+    else
+        table.sort(servers, function(a, b) return a.playing > b.playing end)
+        local bestServer = servers[1]
+        
+        statusLabel.Text = "Sem servidor com " .. TARGET_PLAYERS .. "+ jog. Melhor: " .. bestServer.playing
+        statusLabel.TextColor3 = COLORS.Warning
+        
+        if AUTO_HOP then
+            task.wait(1.5)
+            return hopToServer(bestServer.id)
+        end
+    end
+    
+    return false
+end
+
+execBtn.MouseButton1Click:Connect(function()
+    if IS_CHECKING then return end
+    IS_CHECKING = true
+    
+    execBtn.Text = "BUSCANDO..."
+    checkAndHop()
+    
+    task.wait(2)
+    IS_CHECKING = false
+    execBtn.Text = "EXECUTAR HOP"
+end)
+
+-- Loop Auto Hop
+task.spawn(function()
+    while screenGui.Parent do
+        task.wait(8)
+        if AUTO_HOP and not IS_CHECKING then
+            local currentPlayers = #Players:GetPlayers()
+            if currentPlayers < TARGET_PLAYERS then
+                IS_CHECKING = true
+                checkAndHop()
+                task.wait(2)
+                IS_CHECKING = false
+            end
+        end
+    end
+end)
